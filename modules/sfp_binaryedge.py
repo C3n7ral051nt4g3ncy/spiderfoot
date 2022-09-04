@@ -123,7 +123,7 @@ class sfp_binaryedge(SpiderFootPlugin):
         ]
 
     def query(self, qry, querytype, page=1):
-        retarr = list()
+        retarr = []
 
         if self.errorState:
             return None
@@ -176,8 +176,7 @@ class sfp_binaryedge(SpiderFootPlugin):
                 self.error("Maximum number of pages reached.")
                 return [info]
             retarr.append(info)
-            e = self.query(qry, querytype, page)
-            if e:
+            if e := self.query(qry, querytype, page):
                 retarr.extend(e)
         else:
             retarr.append(info)

@@ -119,7 +119,7 @@ class sfp_botvrij(SpiderFootPlugin):
         Returns:
             list: list of blacklisted host names
         """
-        hosts = list()
+        hosts = []
 
         if not blacklist:
             return hosts

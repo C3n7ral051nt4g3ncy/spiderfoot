@@ -88,7 +88,7 @@ class sfp_bingsearch(SpiderFootPlugin):
             return
 
         if eventData in self.results:
-            self.debug("Already did a search for " + eventData + ", skipping.")
+            self.debug(f"Already did a search for {eventData}, skipping.")
             return
 
         self.results[eventData] = True
@@ -96,7 +96,7 @@ class sfp_bingsearch(SpiderFootPlugin):
         # Sites hosted on the domain
 
         res = self.sf.bingIterate(
-            searchString="site:" + eventData,
+            searchString=f"site:{eventData}",
             opts={
                 "timeout": self.opts["_fetchtimeout"],
                 "useragent": self.opts["_useragent"],
@@ -104,6 +104,7 @@ class sfp_bingsearch(SpiderFootPlugin):
                 "api_key": self.opts["api_key"],
             },
         )
+
         if res is None:
             # Failed to talk to the bing API or no results returned
             return
@@ -119,7 +120,7 @@ class sfp_bingsearch(SpiderFootPlugin):
             link for link in new_links if self.sf.urlFQDN(link).endswith(eventData)
         ]
         for link in internal_links:
-            self.debug("Found a link: " + link)
+            self.debug(f"Found a link: {link}")
 
             evt = SpiderFootEvent("LINKED_URL_INTERNAL", link, self.__name__, event)
             self.notifyListeners(evt)

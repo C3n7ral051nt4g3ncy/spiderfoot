@@ -108,11 +108,12 @@ class sfp_badpackets(SpiderFootPlugin):
         }
 
         res = self.sf.fetchUrl(
-            'https://api.badpackets.net/v1/query?' + urllib.parse.urlencode(params),
+            f'https://api.badpackets.net/v1/query?{urllib.parse.urlencode(params)}',
             headers=headers,
             timeout=15,
-            useragent=self.opts['_useragent']
+            useragent=self.opts['_useragent'],
         )
+
 
         return self.parseApiResponse(res)
 
@@ -196,15 +197,14 @@ class sfp_badpackets(SpiderFootPlugin):
                 self.debug(f"Network size bigger than permitted: {IPNetwork(eventData).prefixlen} > {self.opts['maxsubnet']}")
                 return
 
-        qrylist = list()
+        qrylist = []
         if eventName.startswith("NETBLOCK_"):
             for ipaddr in IPNetwork(eventData):
                 qrylist.append(str(ipaddr))
                 self.results[str(ipaddr)] = True
+        elif eventName == "AFFILIATE_IPADDR" and not self.opts['checkaffiliates']:
+            return
         else:
-            # If user has enabled affiliate checking
-            if eventName == "AFFILIATE_IPADDR" and not self.opts['checkaffiliates']:
-                return
             qrylist.append(eventData)
 
         for addr in qrylist:
@@ -239,11 +239,9 @@ class sfp_badpackets(SpiderFootPlugin):
                 if records:
                     if eventName.startswith("NETBLOCK_"):
                         evt = SpiderFootEvent("RAW_RIR_DATA", str(records), self.__name__, ipEvt)
-                        self.notifyListeners(evt)
                     else:
                         evt = SpiderFootEvent("RAW_RIR_DATA", str(records), self.__name__, event)
-                        self.notifyListeners(evt)
-
+                    self.notifyListeners(evt)
                     for record in records:
                         maliciousIP = record.get('source_ip_address')
 
@@ -252,19 +250,21 @@ class sfp_badpackets(SpiderFootPlugin):
                             continue
 
                         if maliciousIP:
-                            maliciousIPDesc = "Bad Packets [" + str(maliciousIP) + "]\n"
+                            maliciousIPDesc = f"Bad Packets [{str(maliciousIP)}" + "]\n"
 
                             try:
-                                category = record.get('tags')[0].get('category')
-                                if category:
-                                    maliciousIPDesc += " - CATEGORY : " + str(category) + "\n"
+                                if category := record.get('tags')[0].get(
+                                    'category'
+                                ):
+                                    maliciousIPDesc += f" - CATEGORY : {str(category)}" + "\n"
                             except Exception:
                                 self.debug("No category found for target")
 
                             try:
-                                description = record.get('tags')[0].get('description')
-                                if description:
-                                    maliciousIPDesc += " - DESCRIPTION : " + str(description) + "\n"
+                                if description := record.get('tags')[0].get(
+                                    'description'
+                                ):
+                                    maliciousIPDesc += f" - DESCRIPTION : {str(description)}" + "\n"
                             except Exception:
                                 self.debug("No description found for target")
 

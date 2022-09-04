@@ -111,12 +111,7 @@ class SpiderFootScanner():
         self.__sf = SpiderFoot(self.__config)
         self.__sf.dbh = self.__dbh
 
-        # Create a unique ID for this scan in the back-end DB.
-        if scanId:
-            self.__scanId = scanId
-        else:
-            self.__scanId = SpiderFootHelpers.genScanInstanceId()
-
+        self.__scanId = scanId
         self.__sf.scanId = self.__scanId
         self.__dbh.scanInstanceCreate(self.__scanId, self.__scanName, self.__targetValue)
 
@@ -132,11 +127,7 @@ class SpiderFootScanner():
         self.__config['_modulesenabled'] = self.__moduleList
         self.__dbh.scanConfigSet(self.__scanId, self.__sf.configSerialize(deepcopy(self.__config)))
 
-        # Process global options that point to other places for data
-
-        # If a proxy server was specified, set it up
-        proxy_type = self.__config.get('_socks1type')
-        if proxy_type:
+        if proxy_type := self.__config.get('_socks1type'):
             # TODO: allow DNS lookup to be configurable when using a proxy
             # - proxy DNS lookup: socks5h:// and socks4a://
             # - local DNS lookup: socks5:// and socks4://
@@ -285,7 +276,7 @@ class SpiderFootScanner():
                     continue
 
                 try:
-                    module = __import__('modules.' + modName, globals(), locals(), [modName])
+                    module = __import__(f'modules.{modName}', globals(), locals(), [modName])
                 except ImportError:
                     self.__sf.error(f"Failed to load module: {modName}")
                     continue
@@ -388,11 +379,12 @@ class SpiderFootScanner():
             psMod.notifyListeners(firstEvent)
 
             # Special case.. check if an INTERNET_NAME is also a domain
-            if self.__targetType == 'INTERNET_NAME':
-                if self.__sf.isDomain(self.__targetValue, self.__config['_internettlds']):
-                    firstEvent = SpiderFootEvent('DOMAIN_NAME', self.__targetValue,
-                                                 "SpiderFoot UI", rootEvent)
-                    psMod.notifyListeners(firstEvent)
+            if self.__targetType == 'INTERNET_NAME' and self.__sf.isDomain(
+                self.__targetValue, self.__config['_internettlds']
+            ):
+                firstEvent = SpiderFootEvent('DOMAIN_NAME', self.__targetValue,
+                                             "SpiderFoot UI", rootEvent)
+                psMod.notifyListeners(firstEvent)
 
             # If in interactive mode, loop through this shared global variable
             # waiting for inputs, and process them until my status is set to
@@ -431,9 +423,11 @@ class SpiderFootScanner():
         """Run correlation rules."""
 
         self.__sf.status(f"Running {len(self.__config['__correlationrules__'])} correlation rules on scan {self.__scanId}.")
-        ruleset = dict()
-        for rule in self.__config['__correlationrules__']:
-            ruleset[rule['id']] = rule['rawYaml']
+        ruleset = {
+            rule['id']: rule['rawYaml']
+            for rule in self.__config['__correlationrules__']
+        }
+
         corr = SpiderFootCorrelator(self.__dbh, ruleset, self.__scanId)
         corr.run_correlations()
 
@@ -528,7 +522,7 @@ class SpiderFootScanner():
         if self.eventQueue is None:
             return True
 
-        modules_waiting = dict()
+        modules_waiting = {}
         for m in self.__moduleInstances.values():
             try:
                 if m.incomingEventQueue is not None:
@@ -569,22 +563,20 @@ class SpiderFootScanner():
         if not modules_running and not queues_empty:
             self.__sf.debug("Clearing queues for stalled/aborted modules.")
             for mod in self.__moduleInstances.values():
-                try:
+                with suppress(Exception):
                     while True:
                         mod.incomingEventQueue.get_nowait()
-                except Exception:
-                    pass
-
         if log_status:
             events_queued = ", ".join([f"{mod}: {qsize:,}" for mod, qsize in modules_waiting[:5] if qsize > 0])
             if not events_queued:
                 events_queued = 'None'
-            self.__sf.debug(f"Events queued: {sum([m[-1] for m in modules_waiting]):,} ({events_queued})")
+            self.__sf.debug(
+                f"Events queued: {sum(m[-1] for m in modules_waiting):,} ({events_queued})"
+            )
+
             if modules_running:
                 self.__sf.debug(f"Modules running: {len(modules_running):,} ({', '.join(modules_running)})")
             if modules_errored:
                 self.__sf.debug(f"Modules errored: {len(modules_errored):,} ({', '.join(modules_errored)})")
 
-        if all(queues_empty) and not modules_running:
-            return True
-        return False
+        return all(queues_empty) and not modules_running

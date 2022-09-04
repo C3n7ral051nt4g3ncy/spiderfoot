@@ -209,7 +209,7 @@ class SpiderFootWebUi:
         if not isinstance(inputList, list):
             raise TypeError(f"inputList is {type(inputList)}; expected list()")
 
-        ret = list()
+        ret = []
 
         for item in inputList:
             if not item:
@@ -244,11 +244,11 @@ class SpiderFootWebUi:
 
         regex = ""
         if value.startswith("/") and value.endswith("/"):
-            regex = value[1:len(value) - 1]
+            regex = value[1:-1]
             value = ""
 
         value = value.replace('*', '%')
-        if value in [None, ""] and regex in [None, ""]:
+        if value in {None, ""} and regex in [None, ""]:
             value = "%"
             regex = ""
 
@@ -286,7 +286,7 @@ class SpiderFootWebUi:
         Returns:
             str: Excel workbook
         """
-        rowNums = dict()
+        rowNums = {}
         workbook = openpyxl.Workbook()
         defaultSheet = workbook.active
         columnNames.pop(sheetNameIndex)
@@ -393,7 +393,7 @@ class SpiderFootWebUi:
 
         headings = ["Rule Name", "Correlation", "Risk", "Description"]
 
-        if filetype.lower() in ["xlsx", "excel"]:
+        if filetype.lower() in {"xlsx", "excel"}:
             rows = []
             for row in correlations:
                 correlation = row[1]
@@ -453,7 +453,7 @@ class SpiderFootWebUi:
         dbh = SpiderFootDb(self.config)
         data = dbh.scanResultEvent(id, type)
 
-        if filetype.lower() in ["xlsx", "excel"]:
+        if filetype.lower() in {"xlsx", "excel"}:
             rows = []
             for row in data:
                 if row[4] == "ROOT":
@@ -502,8 +502,8 @@ class SpiderFootWebUi:
             str: results in CSV or Excel format
         """
         dbh = SpiderFootDb(self.config)
-        scaninfo = dict()
-        data = list()
+        scaninfo = {}
+        data = []
         scan_name = ""
 
         for id in ids.split(','):
@@ -516,7 +516,7 @@ class SpiderFootWebUi:
         if not data:
             return None
 
-        if filetype.lower() in ["xlsx", "excel"]:
+        if filetype.lower() in {"xlsx", "excel"}:
             rows = []
             for row in data:
                 if row[4] == "ROOT":
@@ -529,7 +529,7 @@ class SpiderFootWebUi:
             if len(ids.split(',')) > 1 or scan_name == "":
                 fname = "SpiderFoot.xlsx"
             else:
-                fname = scan_name + "-SpiderFoot.xlsx"
+                fname = f"{scan_name}-SpiderFoot.xlsx"
 
             cherrypy.response.headers['Content-Disposition'] = f"attachment; filename={fname}"
             cherrypy.response.headers['Content-Type'] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -552,7 +552,7 @@ class SpiderFootWebUi:
             if len(ids.split(',')) > 1 or scan_name == "":
                 fname = "SpiderFoot.csv"
             else:
-                fname = scan_name + "-SpiderFoot.csv"
+                fname = f"{scan_name}-SpiderFoot.csv"
 
             cherrypy.response.headers['Content-Disposition'] = f"attachment; filename={fname}"
             cherrypy.response.headers['Content-Type'] = "application/csv"
@@ -581,7 +581,7 @@ class SpiderFootWebUi:
         if not data:
             return None
 
-        if filetype.lower() in ["xlsx", "excel"]:
+        if filetype.lower() in {"xlsx", "excel"}:
             rows = []
             for row in data:
                 if row[10] == "ROOT":
@@ -622,7 +622,7 @@ class SpiderFootWebUi:
             str: results in JSON format
         """
         dbh = SpiderFootDb(self.config)
-        scaninfo = list()
+        scaninfo = []
         scan_name = ""
 
         for id in ids.split(','):
@@ -636,14 +636,14 @@ class SpiderFootWebUi:
             for row in dbh.scanResultEvent(id):
                 lastseen = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(row[0]))
                 event_data = str(row[1]).replace("<SFURL>", "").replace("</SFURL>", "")
-                source_data = str(row[2])
-                source_module = str(row[3])
                 event_type = row[4]
                 false_positive = row[13]
 
                 if event_type == "ROOT":
                     continue
 
+                source_data = str(row[2])
+                source_module = str(row[3])
                 scaninfo.append({
                     "data": event_data,
                     "event_type": event_type,
@@ -658,7 +658,7 @@ class SpiderFootWebUi:
         if len(ids.split(',')) > 1 or scan_name == "":
             fname = "SpiderFoot.json"
         else:
-            fname = scan_name + "-SpiderFoot.json"
+            fname = f"{scan_name}-SpiderFoot.json"
 
         cherrypy.response.headers['Content-Disposition'] = f"attachment; filename={fname}"
         cherrypy.response.headers['Content-Type'] = "application/json; charset=utf-8"
@@ -693,11 +693,7 @@ class SpiderFootWebUi:
         if gexf == "0":
             return SpiderFootHelpers.buildGraphJson([root], data)
 
-        if not scan_name:
-            fname = "SpiderFoot.gexf"
-        else:
-            fname = scan_name + "SpiderFoot.gexf"
-
+        fname = f"{scan_name}SpiderFoot.gexf" if scan_name else "SpiderFoot.gexf"
         cherrypy.response.headers['Content-Disposition'] = f"attachment; filename={fname}"
         cherrypy.response.headers['Content-Type'] = "application/gexf"
         cherrypy.response.headers['Pragma'] = "no-cache"
@@ -715,8 +711,8 @@ class SpiderFootWebUi:
             str: GEXF data
         """
         dbh = SpiderFootDb(self.config)
-        data = list()
-        roots = list()
+        data = []
+        roots = []
         scan_name = ""
 
         if not ids:
@@ -740,7 +736,7 @@ class SpiderFootWebUi:
         if len(ids.split(',')) > 1 or scan_name == "":
             fname = "SpiderFoot.gexf"
         else:
-            fname = scan_name + "-SpiderFoot.gexf"
+            fname = f"{scan_name}-SpiderFoot.gexf"
 
         cherrypy.response.headers['Content-Disposition'] = f"attachment; filename={fname}"
         cherrypy.response.headers['Content-Type'] = "application/gexf"
@@ -759,7 +755,7 @@ class SpiderFootWebUi:
             dict: scan options for the specified scan
         """
         dbh = SpiderFootDb(self.config)
-        ret = dict()
+        ret = {}
 
         meta = dbh.scanInstanceGet(id)
         if not meta:
@@ -777,13 +773,9 @@ class SpiderFootWebUi:
 
         ret['meta'] = [meta[0], meta[1], meta[2], started, finished, meta[5]]
         ret['config'] = dbh.scanConfigGet(id)
-        ret['configdesc'] = dict()
+        ret['configdesc'] = {}
         for key in list(ret['config'].keys()):
-            if ':' not in key:
-                globaloptdescs = self.config['__globaloptdescs__']
-                if globaloptdescs:
-                    ret['configdesc'][key] = globaloptdescs.get(key, f"{key} (legacy)")
-            else:
+            if ':' in key:
                 [modName, modOpt] = key.split(':')
                 if modName not in list(self.config['__modules__'].keys()):
                     continue
@@ -793,6 +785,8 @@ class SpiderFootWebUi:
 
                 ret['configdesc'][key] = self.config['__modules__'][modName]['optdescs'][modOpt]
 
+            elif globaloptdescs := self.config['__globaloptdescs__']:
+                ret['configdesc'][key] = globaloptdescs.get(key, f"{key} (legacy)")
         return ret
 
     @cherrypy.expose
@@ -810,7 +804,7 @@ class SpiderFootWebUi:
         """
         # Snapshot the current configuration to be used by the scan
         cfg = deepcopy(self.config)
-        modlist = list()
+        modlist = []
         dbh = SpiderFootDb(cfg)
         info = dbh.scanInstanceGet(id)
 
@@ -867,7 +861,7 @@ class SpiderFootWebUi:
         """
         # Snapshot the current configuration to be used by the scan
         cfg = deepcopy(self.config)
-        modlist = list()
+        modlist = []
         dbh = SpiderFootDb(cfg)
 
         for id in ids.split(","):
@@ -952,7 +946,7 @@ class SpiderFootWebUi:
         targetType = SpiderFootHelpers.targetTypeFromString(scantarget)
         if targetType is None:
             # It must be a name, so wrap quotes around it
-            scantarget = "&quot;" + scantarget + "&quot;"
+            scantarget = f"&quot;{scantarget}&quot;"
 
         modlist = scanconfig['_modulesenabled'].split(',')
 
@@ -1024,12 +1018,8 @@ class SpiderFootWebUi:
             if ":_" in opt or opt.startswith("_"):
                 continue
 
-            if pattern:
-                if pattern in opt:
-                    content += f"{opt}={conf[opt]}\n"
-            else:
+            if pattern and pattern in opt or not pattern:
                 content += f"{opt}={conf[opt]}\n"
-
         cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="SpiderFoot.cfg"'
         cherrypy.response.headers['Content-Type'] = "text/plain"
         return content
@@ -1042,11 +1032,11 @@ class SpiderFootWebUi:
         Returns:
             str: settings as JSON
         """
-        ret = dict()
+        ret = {}
         self.token = random.SystemRandom().randint(0, 99999999)
         for opt in self.config:
             if not opt.startswith('__'):
-                ret["global." + opt] = self.config[opt]
+                ret[f"global.{opt}"] = self.config[opt]
                 continue
 
             if opt == '__modules__':
@@ -1054,7 +1044,7 @@ class SpiderFootWebUi:
                     for mo in sorted(self.config['__modules__'][mod]['opts'].keys()):
                         if mo.startswith("_"):
                             continue
-                        ret["module." + mod + "." + mo] = self.config['__modules__'][mod]['opts'][mo]
+                        ret[f"module.{mod}.{mo}"] = self.config['__modules__'][mod]['opts'][mo]
 
         return ['SUCCESS', {'token': self.token, 'data': ret}]
 
@@ -1103,31 +1093,30 @@ class SpiderFootWebUi:
         Raises:
             HTTPRedirect: redirect to scan settings
         """
-        if str(token) != str(self.token):
+        if token != str(self.token):
             return self.error(f"Invalid token ({token})")
 
-        if configFile:  # configFile seems to get set even if a file isn't uploaded
-            if configFile.file:
-                contents = configFile.file.read()
+        if configFile and configFile.file:
+            contents = configFile.file.read()
 
-                if isinstance(contents, bytes):
-                    contents = contents.decode('utf-8')
+            if isinstance(contents, bytes):
+                contents = contents.decode('utf-8')
 
-                try:
-                    tmp = dict()
-                    for line in contents.split("\n"):
-                        if "=" not in line:
-                            continue
+            try:
+                tmp = {}
+                for line in contents.split("\n"):
+                    if "=" not in line:
+                        continue
 
-                        opt_array = line.strip().split("=")
-                        if len(opt_array) == 1:
-                            opt_array[1] = ""
+                    opt_array = line.strip().split("=")
+                    if len(opt_array) == 1:
+                        opt_array[1] = ""
 
-                        tmp[opt_array[0]] = '='.join(opt_array[1:])
+                    tmp[opt_array[0]] = '='.join(opt_array[1:])
 
-                    allopts = json.dumps(tmp).encode('utf-8')
-                except Exception as e:
-                    return self.error(f"Failed to parse input file. Was it generated from SpiderFoot? ({e})")
+                allopts = json.dumps(tmp).encode('utf-8')
+            except Exception as e:
+                return self.error(f"Failed to parse input file. Was it generated from SpiderFoot? ({e})")
 
         # Reset config to default
         if allopts == "RESET":
@@ -1139,9 +1128,10 @@ class SpiderFootWebUi:
         try:
             dbh = SpiderFootDb(self.config)
             useropts = json.loads(allopts)
-            cleanopts = dict()
-            for opt in list(useropts.keys()):
-                cleanopts[opt] = self.cleanUserInput([useropts[opt]])[0]
+            cleanopts = {
+                opt: self.cleanUserInput([useropts[opt]])[0]
+                for opt in list(useropts.keys())
+            }
 
             currentopts = deepcopy(self.config)
 
@@ -1168,7 +1158,7 @@ class SpiderFootWebUi:
         """
         cherrypy.response.headers['Content-Type'] = "application/json; charset=utf-8"
 
-        if str(token) != str(self.token):
+        if token != str(self.token):
             return json.dumps(["ERROR", f"Invalid token ({token})."]).encode('utf-8')
 
         # Reset config to default
@@ -1181,9 +1171,10 @@ class SpiderFootWebUi:
         try:
             dbh = SpiderFootDb(self.config)
             useropts = json.loads(allopts)
-            cleanopts = dict()
-            for opt in list(useropts.keys()):
-                cleanopts[opt] = self.cleanUserInput([useropts[opt]])[0]
+            cleanopts = {
+                opt: self.cleanUserInput([useropts[opt]])[0]
+                for opt in list(useropts.keys())
+            }
 
             currentopts = deepcopy(self.config)
 
@@ -1262,8 +1253,7 @@ class SpiderFootWebUi:
         childs = dbh.scanElementChildrenAll(id, ids)
         allIds = ids + childs
 
-        ret = dbh.scanResultsUpdateFP(id, allIds, fp)
-        if ret:
+        if ret := dbh.scanResultsUpdateFP(id, allIds, fp):
             return json.dumps(["SUCCESS", ""]).encode('utf-8')
 
         return json.dumps(["ERROR", "Exception encountered."]).encode('utf-8')
@@ -1280,10 +1270,7 @@ class SpiderFootWebUi:
 
         dbh = SpiderFootDb(self.config)
         types = dbh.eventTypes()
-        ret = list()
-
-        for r in types:
-            ret.append([r[1], r[0]])
+        ret = [[r[1], r[0]] for r in types]
 
         return sorted(ret, key=itemgetter(0))
 
@@ -1297,7 +1284,7 @@ class SpiderFootWebUi:
         """
         cherrypy.response.headers['Content-Type'] = "application/json; charset=utf-8"
 
-        ret = list()
+        ret = []
 
         modinfo = list(self.config['__modules__'].keys())
         if not modinfo:
@@ -1305,10 +1292,11 @@ class SpiderFootWebUi:
 
         modinfo.sort()
 
-        for m in modinfo:
-            if "__" in m:
-                continue
-            ret.append({'name': m, 'descr': self.config['__modules__'][m]['descr']})
+        ret.extend(
+            {'name': m, 'descr': self.config['__modules__'][m]['descr']}
+            for m in modinfo
+            if "__" not in m
+        )
 
         return ret
 
@@ -1322,19 +1310,21 @@ class SpiderFootWebUi:
         """
         cherrypy.response.headers['Content-Type'] = "application/json; charset=utf-8"
 
-        ret = list()
+        ret = []
 
         rules = self.config['__correlationrules__']
         if not rules:
             return ret
 
-        for r in rules:
-            ret.append({
+        ret.extend(
+            {
                 'id': r['id'],
                 'name': r['meta']['name'],
                 'descr': r['meta']['description'],
                 'risk': r['meta']['risk'],
-            })
+            }
+            for r in rules
+        )
 
         return ret
 

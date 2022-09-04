@@ -100,8 +100,7 @@ class sfp_bitcoinwhoswho(SpiderFootPlugin):
         if not isinstance(data, dict):
             return False
 
-        scams = data.get("scams", [])
-        if scams:
+        if scams := data.get("scams", []):
             self.emit("MALICIOUS_BITCOIN_ADDRESS", f"Bitcoin Who's Who [{pevent.data}][https://bitcoinwhoswho.com/address/{pevent.data}]", pevent)
             return True
 
@@ -125,9 +124,7 @@ class sfp_bitcoinwhoswho(SpiderFootPlugin):
 
         if event.eventType == "BITCOIN_ADDRESS":
             data = self.query(event.data)
-            r = self.generate_events(data, event)
-
-            if r:
+            if r := self.generate_events(data, event):
                 self.emit("RAW_RIR_DATA", json.dumps(data), event)
 
 # End of sfp_bitcoinwhoswho class

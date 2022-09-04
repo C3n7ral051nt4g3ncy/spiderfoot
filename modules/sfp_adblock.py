@@ -153,20 +153,31 @@ class sfp_adblock(SpiderFootPlugin):
             return
 
         try:
-            if eventName == 'PROVIDER_JAVASCRIPT':
-                if self.rules and self.rules.should_block(eventData, {'third-party': True, 'script': True}):
-                    evt = SpiderFootEvent("URL_ADBLOCKED_EXTERNAL", eventData, self.__name__, event)
-                    self.notifyListeners(evt)
+            if (
+                eventName == 'PROVIDER_JAVASCRIPT'
+                and self.rules
+                and self.rules.should_block(
+                    eventData, {'third-party': True, 'script': True}
+                )
+            ):
+                evt = SpiderFootEvent("URL_ADBLOCKED_EXTERNAL", eventData, self.__name__, event)
+                self.notifyListeners(evt)
 
-            if eventName == 'LINKED_URL_EXTERNAL':
-                if self.rules and self.rules.should_block(eventData, {'third-party': True}):
-                    evt = SpiderFootEvent("URL_ADBLOCKED_EXTERNAL", eventData, self.__name__, event)
-                    self.notifyListeners(evt)
+            if (
+                eventName == 'LINKED_URL_EXTERNAL'
+                and self.rules
+                and self.rules.should_block(eventData, {'third-party': True})
+            ):
+                evt = SpiderFootEvent("URL_ADBLOCKED_EXTERNAL", eventData, self.__name__, event)
+                self.notifyListeners(evt)
 
-            if eventName == 'LINKED_URL_INTERNAL':
-                if self.rules and self.rules.should_block(eventData):
-                    evt = SpiderFootEvent("URL_ADBLOCKED_INTERNAL", eventData, self.__name__, event)
-                    self.notifyListeners(evt)
+            if (
+                eventName == 'LINKED_URL_INTERNAL'
+                and self.rules
+                and self.rules.should_block(eventData)
+            ):
+                evt = SpiderFootEvent("URL_ADBLOCKED_INTERNAL", eventData, self.__name__, event)
+                self.notifyListeners(evt)
 
         except ValueError as e:
             self.error(f"Parsing error handling AdBlock list: {e}")

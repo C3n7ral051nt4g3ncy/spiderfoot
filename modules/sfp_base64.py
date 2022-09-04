@@ -78,11 +78,7 @@ class sfp_base64(SpiderFootPlugin):
             if caps < (minlen / 4):
                 continue
 
-            if isinstance(match, str):
-                string = match
-            else:
-                string = str(match)
-
+            string = match if isinstance(match, str) else str(match)
             self.info(f"Found Base64 string: {match}")
 
             try:

@@ -122,8 +122,8 @@ class sfp_apple_itunes(SpiderFootPlugin):
             self.info(f"No results found for {eventData}")
             return
 
-        urls = list()
-        hosts = list()
+        urls = []
+        hosts = []
         found = False
 
         for result in data:
@@ -164,12 +164,8 @@ class sfp_apple_itunes(SpiderFootPlugin):
             self.notifyListeners(evt)
             found = True
 
-            sellerUrl = result.get('sellerUrl')
-
-            if not sellerUrl:
-                continue
-
-            urls.append(sellerUrl)
+            if sellerUrl := result.get('sellerUrl'):
+                urls.append(sellerUrl)
 
         for url in set(urls):
             host = self.sf.urlFQDN(url)
@@ -190,10 +186,9 @@ class sfp_apple_itunes(SpiderFootPlugin):
 
             if self.getTarget().matches(host, includeChildren=True, includeParents=True):
                 evt = SpiderFootEvent('INTERNET_NAME', host, self.__name__, event)
-                self.notifyListeners(evt)
             else:
                 evt = SpiderFootEvent('AFFILIATE_INTERNET_NAME', host, self.__name__, event)
-                self.notifyListeners(evt)
+            self.notifyListeners(evt)
             found = True
 
         if found:

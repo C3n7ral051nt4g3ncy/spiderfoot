@@ -80,10 +80,14 @@ class sfp_blockchain(SpiderFootPlugin):
         self.results[eventData] = True
 
         # Wallet balance
-        res = self.sf.fetchUrl("https://blockchain.info/balance?active=" + eventData,
-                               timeout=self.opts['_fetchtimeout'], useragent=self.opts['_useragent'])
+        res = self.sf.fetchUrl(
+            f"https://blockchain.info/balance?active={eventData}",
+            timeout=self.opts['_fetchtimeout'],
+            useragent=self.opts['_useragent'],
+        )
+
         if res['content'] is None:
-            self.info("No Blockchain info found for " + eventData)
+            self.info(f"No Blockchain info found for {eventData}")
             return
         try:
             data = json.loads(res['content'])
@@ -92,7 +96,10 @@ class sfp_blockchain(SpiderFootPlugin):
             self.debug(f"Error processing JSON response: {e}")
             return
 
-        evt = SpiderFootEvent("BITCOIN_BALANCE", str(balance) + " BTC", self.__name__, event)
+        evt = SpiderFootEvent(
+            "BITCOIN_BALANCE", f"{str(balance)} BTC", self.__name__, event
+        )
+
         self.notifyListeners(evt)
 
 # End of sfp_blockchain class

@@ -96,7 +96,7 @@ class sfp_bingsharedip(SpiderFootPlugin):
 
         self.debug(f"Received event, {eventName}, from {srcModuleName}")
 
-        if self.opts['api_key'] == "" and self.opts['api_key'] == "":
+        if self.opts['api_key'] == "":
             self.error("You enabled sfp_bingsharedip but did not set a Bing API key!")
             self.errorState = True
             return
@@ -108,13 +108,13 @@ class sfp_bingsharedip(SpiderFootPlugin):
         # Ignore IP addresses from myself as they are just for creating
         # a link from the netblock to the co-host.
         if eventName == "IP_ADDRESS" and srcModuleName == "sfp_bingsharedip":
-            self.debug("Ignoring " + eventName + ", from self.")
+            self.debug(f"Ignoring {eventName}, from self.")
             return
 
         if self.cohostcount > self.opts["maxcohost"]:
             return
 
-        qrylist = list()
+        qrylist = []
         if eventName.startswith("NETBLOCK_"):
             for ipaddr in IPNetwork(eventData):
                 if str(ipaddr) not in self.results:
@@ -124,14 +124,14 @@ class sfp_bingsharedip(SpiderFootPlugin):
             qrylist.append(eventData)
             self.results[eventData] = True
 
-        myres = list()
+        myres = []
 
         for ip in qrylist:
             if self.checkForStop():
                 return
 
             res = self.sf.bingIterate(
-                searchString="ip:" + ip,
+                searchString=f"ip:{ip}",
                 opts={
                     "timeout": self.opts["_fetchtimeout"],
                     "useragent": self.opts["_useragent"],
@@ -139,6 +139,7 @@ class sfp_bingsharedip(SpiderFootPlugin):
                     "api_key": self.opts["api_key"],
                 },
             )
+
             if res is None:
                 # Failed to talk to bing api or no results returned
                 return
@@ -146,15 +147,16 @@ class sfp_bingsharedip(SpiderFootPlugin):
             urls = res["urls"]
 
             for url in urls:
-                self.info("Found something on same IP: " + url)
+                self.info(f"Found something on same IP: {url}")
                 site = self.sf.urlFQDN(url.lower())
                 if site not in myres and site != ip:
-                    if not self.opts["cohostsamedomain"]:
-                        if self.getTarget().matches(site, includeParents=True):
-                            self.debug(
-                                f"Skipping {site} because it is on the same domain."
-                            )
-                            continue
+                    if not self.opts[
+                        "cohostsamedomain"
+                    ] and self.getTarget().matches(site, includeParents=True):
+                        self.debug(
+                            f"Skipping {site} because it is on the same domain."
+                        )
+                        continue
                     if self.opts["verify"] and not self.sf.validateIP(site, ip):
                         self.debug(f"Host {site} no longer resolves to {ip}")
                         continue
@@ -166,12 +168,11 @@ class sfp_bingsharedip(SpiderFootPlugin):
                         evt = SpiderFootEvent(
                             "CO_HOSTED_SITE", site, self.__name__, ipe
                         )
-                        self.notifyListeners(evt)
                     else:
                         evt = SpiderFootEvent(
                             "CO_HOSTED_SITE", site, self.__name__, event
                         )
-                        self.notifyListeners(evt)
+                    self.notifyListeners(evt)
                     self.cohostcount += 1
                     myres.append(site)
 

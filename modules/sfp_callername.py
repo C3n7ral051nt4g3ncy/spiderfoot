@@ -86,14 +86,14 @@ class sfp_callername(SpiderFootPlugin):
 
         # Only US numbers are supported (+1)
         if not eventData.startswith('+1'):
-            self.debug('Unsupported phone number: ' + eventData)
+            self.debug(f'Unsupported phone number: {eventData}')
             return
 
         # Strip country code (+1) and formatting
         number = eventData.lstrip('+1').strip('(').strip(')').strip('-').strip(' ')
 
         if not number.isdigit():
-            self.debug('Invalid phone number: ' + number)
+            self.debug(f'Invalid phone number: {number}')
             return
 
         # Query CallerName.com for the specified phone number
@@ -107,12 +107,14 @@ class sfp_callername(SpiderFootPlugin):
             return
 
         if res['code'] != '200':
-            self.debug('No phone information found for ' + eventData)
+            self.debug(f'No phone information found for {eventData}')
             return
 
-        location_match = re.findall(r'<div class="callerid"><h4>.*?</h4><p>(.+?)</p></div>', str(res['content']), re.MULTILINE | re.DOTALL)
-
-        if location_match:
+        if location_match := re.findall(
+            r'<div class="callerid"><h4>.*?</h4><p>(.+?)</p></div>',
+            str(res['content']),
+            re.MULTILINE | re.DOTALL,
+        ):
             location = location_match[0]
 
             if len(location) < 5 or len(location) > 100:

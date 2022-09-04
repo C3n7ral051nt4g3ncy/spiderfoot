@@ -63,8 +63,8 @@ class sfp_accounts(SpiderFootPlugin):
     def setup(self, sfc, userOpts=dict()):
         self.sf = sfc
         self.results = self.tempStorage()
-        self.commonNames = list()
-        self.reportedUsers = list()
+        self.commonNames = []
+        self.reportedUsers = []
         self.errorState = False
         self.distrustedChecked = False
         self.__dataSource__ = "Social Media"
@@ -137,18 +137,23 @@ class sfp_accounts(SpiderFootPlugin):
                 self.siteResults[retname] = False
             return
 
-        if self.opts['musthavename']:
-            if name.lower() not in res['content'].lower():
-                self.debug(f"Skipping {site['name']} as username not mentioned.")
-                with self.lock:
-                    self.siteResults[retname] = False
-                return
+        if (
+            self.opts['musthavename']
+            and name.lower() not in res['content'].lower()
+        ):
+            self.debug(f"Skipping {site['name']} as username not mentioned.")
+            with self.lock:
+                self.siteResults[retname] = False
+            return
 
         # Some sites can't handle periods so treat bob.abc and bob as the same
         # TODO: fix this once WhatsMyName has support for usernames with '.'
         if "." in name:
             firstname = name.split(".")[0]
-            if firstname + "<" in res['content'] or firstname + '"' in res['content']:
+            if (
+                f"{firstname}<" in res['content']
+                or firstname + '"' in res['content']
+            ):
                 with self.lock:
                     self.siteResults[retname] = False
                 return
@@ -201,7 +206,7 @@ class sfp_accounts(SpiderFootPlugin):
         return [site for site, found in self.siteResults.items() if found]
 
     def generatePermutations(self, username):
-        permutations = list()
+        permutations = []
         prefixsuffix = ['_', '-']
         replacements = {
             'a': ['4', 's'],
@@ -256,27 +261,22 @@ class sfp_accounts(SpiderFootPlugin):
                 continue
             npos = pos + 1
             for xc in replacements[c]:
-                newuser = username[0:pos] + xc + username[npos:len(username)]
+                newuser = username[:pos] + xc + username[npos:]
                 permutations.append(newuser)
 
             pos += 1
 
         # Search for common double-letter replacements
-        for p in pairs:
+        for p, value in pairs.items():
             if p in username:
-                for r in pairs[p]:
-                    permutations.append(username.replace(p, r))
-
+                permutations.extend(username.replace(p, r) for r in value)
         # Search for prefixed and suffixed usernames
         for c in prefixsuffix:
-            permutations.append(username + c)
-            permutations.append(c + username)
-
-        # Search for double character usernames
-        pos = 0
-        for c in username:
-            permutations.append(username[0:pos] + c + c + username[(pos + 1):len(username)])
-            pos += 1
+            permutations.extend((username + c, c + username))
+        permutations.extend(
+            username[:pos] + c + c + username[pos + 1 :]
+            for pos, c in enumerate(username)
+        )
 
         return list(set(permutations))
 
@@ -284,7 +284,7 @@ class sfp_accounts(SpiderFootPlugin):
         eventName = event.eventType
         srcModuleName = event.module
         eventData = event.data
-        users = list()
+        users = []
 
         if self.errorState:
             return
@@ -304,22 +304,15 @@ class sfp_accounts(SpiderFootPlugin):
         # If being called for the first time, let's see how trusted the
         # sites are by attempting to fetch a garbage user.
         if not self.distrustedChecked:
-            # Check if a state cache exists first, to not have to do this all the time
-            content = self.sf.cacheGet("sfaccounts_state_v2", 72)
-            if content:
+            if content := self.sf.cacheGet("sfaccounts_state_v2", 72):
                 if content != "None":  # "None" is written to the cached file when no sites are distrusted
-                    delsites = list()
-                    for line in content.split("\n"):
-                        if line == '':
-                            continue
-                        delsites.append(line)
+                    delsites = [line for line in content.split("\n") if line != '']
                     self.sites = [d for d in self.sites if d['name'] not in delsites]
             else:
                 randpool = 'abcdefghijklmnopqrstuvwxyz1234567890'
-                randuser = ''.join([random.SystemRandom().choice(randpool) for x in range(10)])
-                res = self.checkSites(randuser)
-                if res:
-                    delsites = list()
+                randuser = ''.join([random.SystemRandom().choice(randpool) for _ in range(10)])
+                if res := self.checkSites(randuser):
+                    delsites = []
                     for site in res:
                         sitename = site.split(" (Category:")[0]
                         self.debug(f"Distrusting {sitename}")
@@ -334,15 +327,13 @@ class sfp_accounts(SpiderFootPlugin):
 
         if eventName == "HUMAN_NAME":
             names = [eventData.lower().replace(" ", ""), eventData.lower().replace(" ", ".")]
-            for name in names:
-                users.append(name)
-
+            users.extend(iter(names))
         if eventName == "DOMAIN_NAME":
-            kw = self.sf.domainKeyword(eventData, self.opts['_internettlds'])
-            if not kw:
-                return
+            if kw := self.sf.domainKeyword(eventData, self.opts['_internettlds']):
+                users.append(kw)
 
-            users.append(kw)
+            else:
+                return
 
         if eventName == "EMAILADDR" and self.opts['userfromemail']:
             name = eventData.split("@")[0].lower()

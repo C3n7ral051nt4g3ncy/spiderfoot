@@ -246,10 +246,9 @@ class sfp_abusix(SpiderFootPlugin):
             self.debug(f"Unexpected event type {eventName}, skipping")
             return
 
-        addrs = list()
+        addrs = []
         if eventName.startswith("NETBLOCK"):
-            for addr in IPNetwork(eventData):
-                addrs.append(str(addr))
+            addrs.extend(str(addr) for addr in IPNetwork(eventData))
         else:
             addrs.append(eventData)
 

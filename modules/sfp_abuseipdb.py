@@ -130,11 +130,6 @@ class sfp_abuseipdb(SpiderFootPlugin):
             self.errorState = True
             return None
 
-        if res['code'] != "200":
-            self.error("Error retrieving search results from AbuseIPDB")
-            self.errorState = True
-            return None
-
         if res['content'] is None:
             self.error("Received no content from AbuseIPDB")
             self.errorState = True
@@ -153,7 +148,7 @@ class sfp_abuseipdb(SpiderFootPlugin):
         Returns:
             list: list of blacklisted IP addresses
         """
-        ips = list()
+        ips = []
 
         if not blacklist:
             return ips

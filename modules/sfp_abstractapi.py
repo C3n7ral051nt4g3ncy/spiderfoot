@@ -93,7 +93,7 @@ class sfp_abstractapi(SpiderFootPlugin):
             self.errorState = True
             return None
 
-        if res['code'] == '500' or res['code'] == '502' or res['code'] == '503':
+        if res['code'] in ['500', '502', '503']:
             self.error("Abstract API service is unavailable")
             self.errorState = True
             return None
@@ -260,8 +260,7 @@ class sfp_abstractapi(SpiderFootPlugin):
             e = SpiderFootEvent("COMPANY_NAME", name, self.__name__, event)
             self.notifyListeners(e)
 
-            linkedin_url = data.get('linkedin_url')
-            if linkedin_url:
+            if linkedin_url := data.get('linkedin_url'):
                 if linkedin_url.startswith('linkedin.com'):
                     linkedin_url = f"https://{linkedin_url}"
                 e = SpiderFootEvent("SOCIAL_MEDIA", f"LinkedIn (Company): <SFURL>{linkedin_url}</SFURL>", self.__name__, event)
@@ -269,11 +268,7 @@ class sfp_abstractapi(SpiderFootPlugin):
 
             locality = data.get('locality')
             country = data.get('country')
-            geoinfo = ', '.join(
-                filter(None, [locality, country])
-            )
-
-            if geoinfo:
+            if geoinfo := ', '.join(filter(None, [locality, country])):
                 e = SpiderFootEvent("GEOINFO", geoinfo, self.__name__, event)
                 self.notifyListeners(e)
 
@@ -296,8 +291,7 @@ class sfp_abstractapi(SpiderFootPlugin):
             e = SpiderFootEvent("RAW_RIR_DATA", str(data), self.__name__, event)
             self.notifyListeners(e)
 
-            carrier = data.get('carrier')
-            if carrier:
+            if carrier := data.get('carrier'):
                 e = SpiderFootEvent("PROVIDER_TELCO", carrier, self.__name__, event)
                 self.notifyListeners(e)
 
@@ -307,11 +301,7 @@ class sfp_abstractapi(SpiderFootPlugin):
             if country:
                 country_name = country.get('name')
 
-            geoinfo = ', '.join(
-                filter(None, [location, country_name])
-            )
-
-            if geoinfo:
+            if geoinfo := ', '.join(filter(None, [location, country_name])):
                 e = SpiderFootEvent("GEOINFO", geoinfo, self.__name__, event)
                 self.notifyListeners(e)
 
@@ -330,19 +320,19 @@ class sfp_abstractapi(SpiderFootPlugin):
             e = SpiderFootEvent("RAW_RIR_DATA", str(data), self.__name__, event)
             self.notifyListeners(e)
 
-            geoinfo = ', '.join(
+            if geoinfo := ', '.join(
                 [
-                    _f for _f in [
+                    _f
+                    for _f in [
                         data.get('city'),
                         data.get('region'),
                         data.get('postal_code'),
                         data.get('country'),
                         data.get('continent'),
-                    ] if _f
+                    ]
+                    if _f
                 ]
-            )
-
-            if geoinfo:
+            ):
                 e = SpiderFootEvent("GEOINFO", geoinfo, self.__name__, event)
                 self.notifyListeners(e)
 

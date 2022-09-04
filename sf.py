@@ -122,11 +122,7 @@ def main() -> None:
     if args.max_threads:
         sfConfig['_maxthreads'] = args.max_threads
 
-    if args.debug:
-        sfConfig['_debug'] = True
-    else:
-        sfConfig['_debug'] = False
-
+    sfConfig['_debug'] = bool(args.debug)
     if args.q:
         sfConfig['__logging'] = False
 
@@ -140,7 +136,7 @@ def main() -> None:
 
     # Load each module in the modules directory with a .py extension
     try:
-        mod_dir = os.path.dirname(os.path.abspath(__file__)) + '/modules/'
+        mod_dir = f'{os.path.dirname(os.path.abspath(__file__))}/modules/'
         sfModules = SpiderFootHelpers.loadModulesAsDict(mod_dir, ['sfp_template.py'])
     except BaseException as e:
         log.critical(f"Failed to load modules: {e}", exc_info=True)
@@ -153,7 +149,10 @@ def main() -> None:
     # Load each correlation rule in the correlations directory with
     # a .yaml extension
     try:
-        correlations_dir = os.path.dirname(os.path.abspath(__file__)) + '/correlations/'
+        correlations_dir = (
+            f'{os.path.dirname(os.path.abspath(__file__))}/correlations/'
+        )
+
         correlationRulesRaw = SpiderFootHelpers.loadCorrelationRulesRaw(correlations_dir, ['template.yaml'])
     except BaseException as e:
         log.critical(f"Failed to load correlation rules: {e}", exc_info=True)
@@ -167,7 +166,7 @@ def main() -> None:
         sys.exit(-1)
 
     # Sanity-check the rules and parse them
-    sfCorrelationRules = list()
+    sfCorrelationRules = []
     if not correlationRulesRaw:
         log.error(f"No correlation rules found in correlations directory: {correlations_dir}")
     else:
@@ -208,10 +207,7 @@ def main() -> None:
         dbh = SpiderFootDb(sfConfig, init=True)
         log.info("Types available:")
         typedata = dbh.eventTypes()
-        types = dict()
-        for r in typedata:
-            types[r[1]] = r[0]
-
+        types = {r[1]: r[0] for r in typedata}
         for t in sorted(types.keys()):
             print(('{0:45}  {1}'.format(t, types[t])))
         sys.exit(0)

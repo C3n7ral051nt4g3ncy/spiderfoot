@@ -95,7 +95,7 @@ class SpiderFootCli(cmd.Cmd):
 
     # Command completion for arguments
     def complete_default(self, text, line, startidx, endidx):
-        ret = list()
+        ret = []
 
         if not isinstance(text, str):
             return ret
@@ -104,14 +104,9 @@ class SpiderFootCli(cmd.Cmd):
             return ret
 
         if "-m" in line and line.find("-m") > line.find("-t"):
-            for m in self.modules:
-                if m.startswith(text):
-                    ret.append(m)
-
+            ret.extend(m for m in self.modules if m.startswith(text))
         if "-t" in line and line.find("-t") > line.find("-m"):
-            for t in self.types:
-                if t.startswith(text):
-                    ret.append(t)
+            ret.extend(t for t in self.types if t.startswith(text))
         return ret
 
     def dprint(self, msg, err=False, deb=False, plain=False, color=None):
@@ -142,7 +137,7 @@ class SpiderFootCli(cmd.Cmd):
             if not plain or color:
                 cout = col + bcolors.BOLD + pfx + " " + bcolors.ENDC + col + msg + bcolors.ENDC
                 # Never include color in the spool
-                sout = pfx + " " + msg
+                sout = f"{pfx} {msg}"
             else:
                 cout = msg
                 sout = msg
@@ -159,22 +154,15 @@ class SpiderFootCli(cmd.Cmd):
     def do_debug(self, line):
         """debug
         Short-cut command for set cli.debug = 1"""
-        if self.ownopts['cli.debug']:
-            val = "0"
-        else:
-            val = "1"
-        return self.do_set("cli.debug = " + val)
+        val = "0" if self.ownopts['cli.debug'] else "1"
+        return self.do_set(f"cli.debug = {val}")
 
     def do_spool(self, line):
         """spool
         Short-cut command for set cli.spool = 1/0"""
-        if self.ownopts['cli.spool']:
-            val = "0"
-        else:
-            val = "1"
-
+        val = "0" if self.ownopts['cli.spool'] else "1"
         if self.ownopts['cli.spool_file']:
-            return self.do_set("cli.spool = " + val)
+            return self.do_set(f"cli.spool = {val}")
 
         self.edprint("You haven't set cli.spool_file. Set that before enabling spooling.")
 
@@ -193,12 +181,8 @@ class SpiderFootCli(cmd.Cmd):
                 i += 1
             return None
 
-        if self.ownopts['cli.history']:
-            val = "0"
-        else:
-            val = "1"
-
-        return self.do_set("cli.history = " + val)
+        val = "0" if self.ownopts['cli.history'] else "1"
+        return self.do_set(f"cli.history = {val}")
 
     # Run before all commands to handle history and spooling
     def precmd(self, line):
@@ -228,21 +212,18 @@ class SpiderFootCli(cmd.Cmd):
         if not data:
             return ""
 
-        out = list()
+        out = []
         # Get the column titles
-        maxsize = dict()
+        maxsize = {}
         if type(data[0]) == dict:
             cols = list(data[0].keys())
         else:
             # for lists, use the index numbers as titles
-            cols = list(map(str, list(range(0, len(data[0])))))
+            cols = list(map(str, list(range(len(data[0])))))
 
         # Strip out columns that don't have titles
         if titlemap:
-            nc = list()
-            for c in cols:
-                if c in titlemap:
-                    nc.append(c)
+            nc = [c for c in cols if c in titlemap]
             cols = nc
 
         spaces = 2
@@ -266,21 +247,15 @@ class SpiderFootCli(cmd.Cmd):
 
         # Adjust for long titles
         if titlemap:
-            for c in maxsize:
-                if len(titlemap.get(c, c)) > maxsize[c]:
+            for c, value in maxsize.items():
+                if len(titlemap.get(c, c)) > value:
                     maxsize[c] = len(titlemap.get(c, c))
 
         # Display the column titles
         for i, c in enumerate(cols):
-            if titlemap:
-                t = titlemap.get(c, c)
-            else:
-                t = c
-            # out += t
-            out.append(t)
+            t = titlemap.get(c, c) if titlemap else c
+            out.extend((t, " " * spaces))
             sdiff = maxsize[c] - len(t) + 1
-            # out += " " * spaces
-            out.append(" " * spaces)
             if sdiff > 0 and i < len(cols) - 1:
                 # out += " " * sdiff
                 out.append(" " * sdiff)
@@ -325,16 +300,14 @@ class SpiderFootCli(cmd.Cmd):
                 # there is a preceeding space if this is after the
                 # first column
                 # sdiff = number of spaces between end of word and |
-                if di == 0:
-                    sdiff = (maxsize[cn] - lv) + spaces
-                else:
-                    sdiff = (maxsize[cn] - lv) + spaces - 1
+                sdiff = (
+                    (maxsize[cn] - lv) + spaces
+                    if di == 0
+                    else (maxsize[cn] - lv) + spaces - 1
+                )
+
                 if di < len(cols) - 1:
-                    # out += " " * sdiff
-                    out.append(" " * sdiff)
-                if di < len(cols) - 1:
-                    # out += "| "
-                    out.append("| ")
+                    out.extend((" " * sdiff, "| "))
                 di += 1
                 i += 1
             # out += "\n"
@@ -359,9 +332,10 @@ class SpiderFootCli(cmd.Cmd):
         # requests_log.setLevel(logging.DEBUG)
         # requests_log.propagate = True
         headers = {
-            "User-agent": "SpiderFoot-CLI/" + self.version,
-            "Accept": "application/json"
+            "User-agent": f"SpiderFoot-CLI/{self.version}",
+            "Accept": "application/json",
         }
+
 
         try:
             self.ddprint(f"Fetching: {url}")
@@ -405,7 +379,7 @@ class SpiderFootCli(cmd.Cmd):
     # sf> scans "blahblah test" | top 10 | grep foo ->
     # [[ 'blahblah test' ], [[ 'top', '10' ], [ 'grep', 'foo']]]
     def myparseline(self, cmdline, replace=True):
-        ret = [list(), list()]
+        ret = [[], []]
 
         if not cmdline:
             return ret
@@ -428,14 +402,12 @@ class SpiderFootCli(cmd.Cmd):
             return ret
 
         # Handle any pipe commands at the end
-        ret[1] = list()
+        ret[1] = [[]]
         i = 0
-        ret[1].append(list())
         for t in s[(s.index('|') + 1):]:
             if t == '|':
                 i += 1
-                ret[1].append(list())
-            # Replace variables
+                ret[1].append([])
             elif t.startswith("$") and t in self.ownopts:
                 ret[1][i].append(self.ownopts[t])
             else:
@@ -506,7 +478,7 @@ class SpiderFootCli(cmd.Cmd):
                 if not pipeargs.isdigit():
                     self.edprint("Invalid syntax.")
                     return
-                newout = "\n".join(out.split("\n")[0:int(pipeargs)])
+                newout = "\n".join(out.split("\n")[:int(pipeargs)])
 
             if pipecmd == "last":
                 if not pipeargs.isdigit():
@@ -653,19 +625,18 @@ class SpiderFootCli(cmd.Cmd):
             self.dprint("No such scan exists.")
             return
 
-        out = list()
-        out.append(f"Name: {j['meta'][0]}")
-        out.append(f"ID: {sid}")
-        out.append(f"Target: {j['meta'][1]}")
-        out.append(f"Started: {j['meta'][3]}")
-        out.append(f"Completed: {j['meta'][4]}")
-        out.append(f"Status: {j['meta'][5]}")
+        out = [
+            f"Name: {j['meta'][0]}",
+            f"ID: {sid}",
+            f"Target: {j['meta'][1]}",
+            f"Started: {j['meta'][3]}",
+            f"Completed: {j['meta'][4]}",
+            f"Status: {j['meta'][5]}",
+        ]
 
         if "-c" in c[0]:
             out.append("Configuration:")
-            for k in sorted(j['config']):
-                out.append(f"  {k} = {j['config'][k]}")
-
+            out.extend(f"  {k} = {j['config'][k]}" for k in sorted(j['config']))
         self.send_output("\n".join(out), line, total=False, raw=True)
 
     # List scans.
@@ -681,7 +652,7 @@ class SpiderFootCli(cmd.Cmd):
             return
 
         c = self.myparseline(line)
-        titles = dict()
+        titles = {}
         if "-x" in c[0]:
             titles = {
                 "0": "ID",
@@ -752,12 +723,11 @@ class SpiderFootCli(cmd.Cmd):
             self.edprint("Invalid syntax.")
             return
 
-        post = {"id": c[0][0]}
+        post = {
+            "id": c[0][0],
+            "eventType": c[0][c[0].index("-t") + 1] if "-t" in c[0] else "ALL",
+        }
 
-        if "-t" in c[0]:
-            post["eventType"] = c[0][c[0].index("-t") + 1]
-        else:
-            post["eventType"] = "ALL"
 
         if "-u" in c[0]:
             url = self.ownopts['cli.server_baseurl'] + "/scaneventresultsunique"
@@ -798,15 +768,12 @@ class SpiderFootCli(cmd.Cmd):
             self.edprint("Invalid syntax.")
             return
 
-        export_format = 'json'
-        if '-t' in c[0]:
-            export_format = c[0][c[0].index("-t") + 1]
-
+        export_format = c[0][c[0].index("-t") + 1] if '-t' in c[0] else 'json'
         base_url = self.ownopts['cli.server_baseurl']
         post = {"ids": c[0][0]}
 
         if export_format == 'json':
-            res = self.request(base_url + '/scanexportjsonmulti', post=post)
+            res = self.request(f'{base_url}/scanexportjsonmulti', post=post)
 
             if not res:
                 self.dprint("No results.")
@@ -821,7 +788,7 @@ class SpiderFootCli(cmd.Cmd):
             self.send_output(json.dumps(j), line, titles=None, total=False, raw=True)
 
         elif export_format == 'csv':
-            res = self.request(base_url + '/scaneventresultexportmulti', post=post)
+            res = self.request(f'{base_url}/scaneventresultexportmulti', post=post)
 
             if not res:
                 self.dprint("No results.")
@@ -830,7 +797,7 @@ class SpiderFootCli(cmd.Cmd):
             self.send_output(res, line, titles=None, total=False, raw=True)
 
         elif export_format == 'gexf':
-            res = self.request(base_url + '/scanvizmulti', post=post)
+            res = self.request(f'{base_url}/scanvizmulti', post=post)
 
             if not res:
                 self.dprint("No results.")
@@ -958,31 +925,15 @@ class SpiderFootCli(cmd.Cmd):
             self.edprint("Invalid syntax.")
             return None
 
-        mods = ""
-        types = ""
-        usecase = ""
-
-        if "-m" in c[0]:
-            mods = c[0][c[0].index("-m") + 1]
-
-        if "-t" in c[0]:
-            # Scan by type
-            types = c[0][c[0].index("-t") + 1]
-
-        if "-u" in c[0]:
-            # Scan by use case
-            usecase = c[0][c[0].index("-u") + 1]
-
+        mods = c[0][c[0].index("-m") + 1] if "-m" in c[0] else ""
+        types = c[0][c[0].index("-t") + 1] if "-t" in c[0] else ""
+        usecase = c[0][c[0].index("-u") + 1] if "-u" in c[0] else ""
         if not mods and not types and not usecase:
             self.edprint("Invalid syntax.")
             return None
 
         target = c[0][0]
-        if "-n" in c[0]:
-            title = c[0][c[0].index("-n") + 1]
-        else:
-            title = target
-
+        title = c[0][c[0].index("-n") + 1] if "-n" in c[0] else target
         post = {
             "scanname": title,
             "scantarget": target,
@@ -1004,10 +955,7 @@ class SpiderFootCli(cmd.Cmd):
         else:
             self.dprint(f"Unable to start scan: {s[1]}")
 
-        if "-w" in c[0]:
-            return self.do_logs(f"{s[1]} -w")
-
-        return None
+        return self.do_logs(f"{s[1]} -w") if "-w" in c[0] else None
 
     # Stop a running scan.
     def do_stop(self, line):
@@ -1040,14 +988,8 @@ class SpiderFootCli(cmd.Cmd):
             return
 
         val = c[0][0]
-        sid = None
-        etype = None
-
-        if "-t" in c[0]:
-            etype = c[0][c[0].index("-t") + 1]
-        if "-s" in c[0]:
-            sid = c[0][c[0].index("-s") + 1]
-
+        etype = c[0][c[0].index("-t") + 1] if "-t" in c[0] else None
+        sid = c[0][c[0].index("-s") + 1] if "-s" in c[0] else None
         titles = {
             "0": "Last Seen",
             "1": "Data",

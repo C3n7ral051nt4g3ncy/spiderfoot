@@ -165,7 +165,7 @@ class sfp_abusech(SpiderFootPlugin):
         Returns:
             list: list of blacklisted IP addresses
         """
-        ips = list()
+        ips = []
 
         if not blacklist:
             return ips
@@ -236,7 +236,7 @@ class sfp_abusech(SpiderFootPlugin):
         Returns:
             list: list of blacklisted IP addresses
         """
-        ips = list()
+        ips = []
 
         if not blacklist:
             return ips
@@ -315,7 +315,7 @@ class sfp_abusech(SpiderFootPlugin):
         Returns:
             list: list of blacklisted hosts
         """
-        hosts = list()
+        hosts = []
 
         if not blacklist:
             return hosts

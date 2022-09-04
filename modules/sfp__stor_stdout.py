@@ -55,11 +55,7 @@ class sfp__stor_stdout(SpiderFootPlugin):
 
     def output(self, event):
         d = self.opts['_csvdelim']
-        if type(event.data) in [list, dict]:
-            data = str(event.data)
-        else:
-            data = event.data
-
+        data = str(event.data) if type(event.data) in [list, dict] else event.data
         if type(data) != str:
             data = str(event.data)
 
@@ -81,8 +77,8 @@ class sfp__stor_stdout(SpiderFootPlugin):
             srcdata = srcdata.replace("<SFURL>", "").replace("</SFURL>", "")
 
         if self.opts['_maxlength'] > 0:
-            data = data[0:self.opts['_maxlength']]
-            srcdata = srcdata[0:self.opts['_maxlength']]
+            data = data[:self.opts['_maxlength']]
+            srcdata = srcdata[:self.opts['_maxlength']]
 
         if self.opts['_format'] == "tab":
             if self.opts['_showsource']:

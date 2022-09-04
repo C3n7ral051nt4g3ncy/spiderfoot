@@ -78,22 +78,25 @@ class sfp_azureblobstorage(SpiderFootPlugin):
                 self.s3results[url] = True
 
     def threadSites(self, siteList):
-        self.s3results = dict()
+        self.s3results = {}
         running = True
-        i = 0
         t = []
 
-        for site in siteList:
+        for i, site in enumerate(siteList):
             if self.checkForStop():
                 return None
 
-            self.info("Spawning thread to check bucket: " + site)
+            self.info(f"Spawning thread to check bucket: {site}")
             tname = str(random.SystemRandom().randint(0, 999999999))
-            t.append(threading.Thread(name='thread_sfp_azureblobstorages_' + tname,
-                                      target=self.checkSite, args=(site,)))
-            t[i].start()
-            i += 1
+            t.append(
+                threading.Thread(
+                    name=f'thread_sfp_azureblobstorages_{tname}',
+                    target=self.checkSite,
+                    args=(site,),
+                )
+            )
 
+            t[i].start()
         # Block until all threads are finished
         while running:
             found = False
@@ -111,8 +114,8 @@ class sfp_azureblobstorage(SpiderFootPlugin):
 
     def batchSites(self, sites):
         i = 0
-        res = list()
-        siteList = list()
+        res = []
+        siteList = []
 
         for site in sites:
             if i >= self.opts['_maxthreads']:
@@ -120,11 +123,9 @@ class sfp_azureblobstorage(SpiderFootPlugin):
                 if data is None:
                     return res
 
-                for ret in list(data.keys()):
-                    if data[ret]:
-                        res.append(ret)
+                res.extend(ret for ret in list(data.keys()) if data[ret])
                 i = 0
-                siteList = list()
+                siteList = []
 
             siteList.append(site)
             i += 1
@@ -152,11 +153,10 @@ class sfp_azureblobstorage(SpiderFootPlugin):
             return
 
         targets = [eventData.replace('.', '')]
-        kw = self.sf.domainKeyword(eventData, self.opts['_internettlds'])
-        if kw:
+        if kw := self.sf.domainKeyword(eventData, self.opts['_internettlds']):
             targets.append(kw)
 
-        urls = list()
+        urls = []
         for t in targets:
             suffixes = [''] + self.opts['suffixes'].split(',')
             for s in suffixes:
@@ -164,7 +164,7 @@ class sfp_azureblobstorage(SpiderFootPlugin):
                     return
 
                 b = t + s + ".blob.core.windows.net"
-                url = "https://" + b
+                url = f"https://{b}"
                 urls.append(url)
 
         # Batch the scans

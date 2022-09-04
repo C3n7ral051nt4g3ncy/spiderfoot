@@ -191,8 +191,7 @@ class sfp_censys(SpiderFootPlugin):
             self.error(f"Error processing JSON response from Censys.io: {e}")
             return None
 
-        error_type = data.get('error_type')
-        if error_type:
+        if error_type := data.get('error_type'):
             self.error(f"Censys returned an unexpected error: {error_type}")
             return None
 

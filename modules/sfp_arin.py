@@ -78,25 +78,21 @@ class sfp_arin(SpiderFootPlugin):
         head = {"Accept": "application/json"}
         res = self.sf.fetchUrl(url, timeout=self.opts['_fetchtimeout'],
                                useragent=self.opts['_useragent'], headers=head)
-        if res['content'] is not None and res['code'] != "404":
-            return res
-        return None
+        return res if res['content'] is not None and res['code'] != "404" else None
 
     # Owner information about an AS
     def query(self, qtype, value):
         url = "https://whois.arin.net/rest/"
 
         if qtype == "domain":
-            url += "pocs;domain=@" + value
+            url += f"pocs;domain=@{value}"
 
         try:
             if qtype == "name":
                 fname, lname = value.split(" ", 1)
                 if fname.endswith(","):
-                    t = fname
-                    fname = lname
-                    lname = t
-                url += "pocs;first=" + fname + ";last=" + lname
+                    fname, lname = lname, fname
+                url += f"pocs;first={fname};last={lname}"
         except Exception as e:
             self.debug("Couldn't process name: " + value + " (" + str(e) + ")")
             return None
@@ -106,7 +102,7 @@ class sfp_arin(SpiderFootPlugin):
 
         res = self.fetchRir(url)
         if not res:
-            self.debug("No info found/available for " + value + " at ARIN.")
+            self.debug(f"No info found/available for {value} at ARIN.")
             return None
 
         try:
@@ -139,47 +135,50 @@ class sfp_arin(SpiderFootPlugin):
             ret = self.query("domain", eventData)
             if not ret:
                 return
-            if "pocs" in ret:
-                if "pocRef" in ret['pocs']:
-                    ref = list()
-                    # Might be a list or a dictionary
-                    if type(ret['pocs']['pocRef']) == dict:
-                        ref = [ret['pocs']['pocRef']]
-                    else:
-                        ref = ret['pocs']['pocRef']
-                    for p in ref:
-                        name = p['@name']
-                        if "," in name:
-                            sname = name.split(", ", 1)
-                            name = sname[1] + " " + sname[0]
+            if "pocs" in ret and "pocRef" in ret['pocs']:
+                ref = []
+                # Might be a list or a dictionary
+                if type(ret['pocs']['pocRef']) == dict:
+                    ref = [ret['pocs']['pocRef']]
+                else:
+                    ref = ret['pocs']['pocRef']
+                for p in ref:
+                    name = p['@name']
+                    if "," in name:
+                        sname = name.split(", ", 1)
+                        name = f"{sname[1]} {sname[0]}"
 
                         # A bit of a hack. The reason we do this is because
                         # the names are separated in the content and sfp_names
                         # won't recognise it. So we submit this and see if it
                         # really is considered a name.
-                        evt = SpiderFootEvent("RAW_RIR_DATA", "Possible full name: " + name,
-                                              self.__name__, self.currentEventSrc)
-                        self.notifyListeners(evt)
+                    evt = SpiderFootEvent(
+                        "RAW_RIR_DATA",
+                        f"Possible full name: {name}",
+                        self.__name__,
+                        self.currentEventSrc,
+                    )
 
-                        # We just want the raw data so we can get potential
-                        # e-mail addresses.
-                        self.query("contact", p['$'])
+                    self.notifyListeners(evt)
+
+                    # We just want the raw data so we can get potential
+                    # e-mail addresses.
+                    self.query("contact", p['$'])
 
         if eventName == "HUMAN_NAME":
             ret = self.query("name", eventData)
             if not ret:
                 return
-            if "pocs" in ret:
-                if "pocRef" in ret['pocs']:
-                    ref = list()
-                    # Might be a list or a dictionary
-                    if type(ret['pocs']['pocRef']) == dict:
-                        ref = [ret['pocs']['pocRef']]
-                    else:
-                        ref = ret['pocs']['pocRef']
-                    for p in ref:
-                        # We just want the raw data so we can get potential
-                        # e-mail addresses.
-                        self.query("contact", p['$'])
+            if "pocs" in ret and "pocRef" in ret['pocs']:
+                ref = []
+                # Might be a list or a dictionary
+                if type(ret['pocs']['pocRef']) == dict:
+                    ref = [ret['pocs']['pocRef']]
+                else:
+                    ref = ret['pocs']['pocRef']
+                for p in ref:
+                    # We just want the raw data so we can get potential
+                    # e-mail addresses.
+                    self.query("contact", p['$'])
 
 # End of sfp_arin class

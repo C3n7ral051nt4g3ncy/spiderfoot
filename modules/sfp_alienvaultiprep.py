@@ -141,7 +141,7 @@ class sfp_alienvaultiprep(SpiderFootPlugin):
         Returns:
             list: list of blacklisted IP addresses
         """
-        ips = list()
+        ips = []
 
         if not blacklist:
             return ips

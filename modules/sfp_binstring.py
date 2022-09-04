@@ -54,7 +54,7 @@ class sfp_binstring(SpiderFootPlugin):
 
     def setup(self, sfc, userOpts=dict()):
         self.sf = sfc
-        self.results = list()
+        self.results = []
         self.__dataSource__ = "Target Website"
 
         self.d = SpiderFootHelpers.dictionaryWordsFromWordlists()
@@ -63,7 +63,7 @@ class sfp_binstring(SpiderFootPlugin):
             self.opts[opt] = userOpts[opt]
 
     def getStrings(self, content):
-        words = list()
+        words = []
         result = ""
 
         if not content:
@@ -78,19 +78,9 @@ class sfp_binstring(SpiderFootPlugin):
                 continue
             if len(result) >= self.opts['minwordsize']:
                 if self.opts['usedict']:
-                    accept = False
-                    for w in self.d:
-                        if result.startswith(w) or result.endswith(w):
-                            accept = True
-                            break
-
+                    accept = any(result.startswith(w) or result.endswith(w) for w in self.d)
                 if self.opts['filterchars']:
-                    accept = True
-                    for x in self.opts['filterchars']:
-                        if x in result:
-                            accept = False
-                            break
-
+                    accept = all(x not in result for x in self.opts['filterchars'])
                 if not self.opts['filterchars'] and not self.opts['usedict']:
                     accept = True
 
@@ -99,10 +89,7 @@ class sfp_binstring(SpiderFootPlugin):
 
                 result = ""
 
-        if len(words) == 0:
-            return None
-
-        return words
+        return words or None
 
     # What events is this module interested in for input
     def watchedEvents(self):
@@ -139,10 +126,8 @@ class sfp_binstring(SpiderFootPlugin):
                     continue
 
                 self.debug(f"Searching {eventData} for strings")
-                words = self.getStrings(res['content'])
-
-                if words:
-                    wordstr = '\n'.join(words[0:self.opts['maxwords']])
+                if words := self.getStrings(res['content']):
+                    wordstr = '\n'.join(words[:self.opts['maxwords']])
                     evt = SpiderFootEvent("RAW_FILE_META_DATA", wordstr, self.__name__, event)
                     self.notifyListeners(evt)
 

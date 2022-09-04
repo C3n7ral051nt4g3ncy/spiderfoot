@@ -74,7 +74,7 @@ class sfp_bitcoin(SpiderFootPlugin):
 
         self.debug(f"Received event, {eventName}, from {srcModuleName}")
 
-        addrs = list()
+        addrs = []
 
         # thanks to https://stackoverflow.com/questions/21683680/regex-to-match-bitcoin-addresses
         # Does not support keys or testnet addresses

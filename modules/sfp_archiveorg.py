@@ -82,7 +82,7 @@ class sfp_archiveorg(SpiderFootPlugin):
     def setup(self, sfc, userOpts=dict()):
         self.sf = sfc
         self.results = self.tempStorage()
-        self.foundDates = list()
+        self.foundDates = []
         self.errorState = False
 
         for opt in list(userOpts.keys()):
@@ -149,8 +149,11 @@ class sfp_archiveorg(SpiderFootPlugin):
 
             maxDate = newDate.strftime("%Y%m%d")
 
-            url = "https://archive.org/wayback/available?url=" + eventData + \
-                  "&timestamp=" + maxDate
+            url = (
+                f"https://archive.org/wayback/available?url={eventData}"
+                + "&timestamp="
+            ) + maxDate
+
             res = self.sf.fetchUrl(url, timeout=self.opts['_fetchtimeout'],
                                    useragent=self.opts['_useragent'])
 
@@ -169,7 +172,7 @@ class sfp_archiveorg(SpiderFootPlugin):
                 continue
 
             if len(ret['archived_snapshots']) < 1:
-                self.debug("No archived snapshots for " + eventData)
+                self.debug(f"No archived snapshots for {eventData}")
                 continue
 
             wbmlink = ret['archived_snapshots']['closest']['url']
@@ -178,9 +181,9 @@ class sfp_archiveorg(SpiderFootPlugin):
                 continue
 
             self.foundDates.append(wbmlink)
-            name = eventName + "_HISTORIC"
+            name = f"{eventName}_HISTORIC"
 
-            self.info("Found a historic file: " + wbmlink)
+            self.info(f"Found a historic file: {wbmlink}")
             evt = SpiderFootEvent(name, wbmlink, self.__name__, event)
             self.notifyListeners(evt)
 

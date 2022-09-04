@@ -123,10 +123,7 @@ class sfp_c99(SpiderFootPlugin):
             self.error(f"Error processing response from C99: {e}")
             return None
 
-        if not info.get('success', False):
-            return None
-
-        return info
+        return info if info.get('success', False) else None
 
     def emitRawRirData(self, data, event):
         evt = SpiderFootEvent("RAW_RIR_DATA", str(data), self.__name__, event)
@@ -170,9 +167,7 @@ class sfp_c99(SpiderFootPlugin):
             if self.checkForStop():
                 return
 
-            subDomain = subDomainElem.get("subdomain", "").strip()
-
-            if subDomain:
+            if subDomain := subDomainElem.get("subdomain", "").strip():
                 self.emitHostname(subDomain, event)
                 found = True
 
@@ -202,9 +197,7 @@ class sfp_c99(SpiderFootPlugin):
             self.emitRawRirData(domainHistoryData, event)
 
     def emitIpToSkypeData(self, data, event):
-        skype = data.get("skype")
-
-        if skype:
+        if skype := data.get("skype"):
             evt = SpiderFootEvent(
                 "ACCOUNT_EXTERNAL_OWNED",
                 f"Skype [{skype}]",
@@ -232,8 +225,7 @@ class sfp_c99(SpiderFootPlugin):
                 if self.checkForStop():
                     return
 
-                domain = domain.strip()
-                if domain:
+                if domain := domain.strip():
                     self.emitHostname(domain, event)
                     found = True
 
@@ -241,9 +233,7 @@ class sfp_c99(SpiderFootPlugin):
             self.emitRawRirData(data, event)
 
     def emitProxyDetectionData(self, data, event):
-        isProxy = data.get("proxy")
-
-        if isProxy:
+        if isProxy := data.get("proxy"):
             evt = SpiderFootEvent(
                 "WEBSERVER_TECHNOLOGY",
                 f"Server is proxy: {isProxy}",
@@ -256,23 +246,18 @@ class sfp_c99(SpiderFootPlugin):
     def emitGeoIPData(self, data, event):
         found = False
 
-        hostName = data.get("hostname", "").strip()
-        if hostName:
+        if hostName := data.get("hostname", "").strip():
             self.emitHostname(hostName, event)
             found = True
 
-        record = data.get("records")
-
-        if record:
+        if record := data.get("records"):
             country = record.get("country_name")
             region = record["region"].get("name") if record.get("region") else None
             city = record.get("city")
             postalCode = record.get("postal_code")
             latitude = record.get("latitude")
             longitude = record.get("longitude")
-            provider = record.get("isp")
-
-            if provider:
+            if provider := record.get("isp"):
                 evt = SpiderFootEvent(
                     "PROVIDER_HOSTING",
                     provider,
@@ -338,9 +323,7 @@ class sfp_c99(SpiderFootPlugin):
             self.emitRawRirData(data, event)
 
     def emitWafDetectorData(self, data, event):
-        firewall = data.get("result")
-
-        if firewall:
+        if firewall := data.get("result"):
             evt = SpiderFootEvent(
                 "WEBSERVER_TECHNOLOGY",
                 f"Firewall detected: {firewall}",
@@ -374,12 +357,13 @@ class sfp_c99(SpiderFootPlugin):
                 self.debug("Host no longer resolves to our IP.")
                 return
 
-            if not self.opts["cohostsamedomain"]:
-                if self.getTarget().matches(data, includeParents=True):
-                    self.debug(
-                        f"Skipping {data} because it is on the same domain."
-                    )
-                    return
+            if not self.opts["cohostsamedomain"] and self.getTarget().matches(
+                data, includeParents=True
+            ):
+                self.debug(
+                    f"Skipping {data} because it is on the same domain."
+                )
+                return
 
             if self.cohostcount < self.opts["maxcohost"]:
                 evt = SpiderFootEvent("CO_HOSTED_SITE", data, self.__name__, event)
@@ -433,36 +417,26 @@ class sfp_c99(SpiderFootPlugin):
             if isinstance(domainHistoryData, list):
                 self.emitDomainHistoryData(domainHistoryData, event)
 
-            wafDetectorData = self.query("firewalldetector", "url", eventData)
-
-            if wafDetectorData:
+            if wafDetectorData := self.query("firewalldetector", "url", eventData):
                 self.emitWafDetectorData(wafDetectorData, event)
 
         if eventName == "IP_ADDRESS":
-            ipToSkypeData = self.query("ip2skype", "ip", eventData)
-
-            if ipToSkypeData:
+            if ipToSkypeData := self.query("ip2skype", "ip", eventData):
                 self.emitIpToSkypeData(ipToSkypeData, event)
 
-            ipToDomainsData = self.query("ip2domains", "ip", eventData)
-
-            if ipToDomainsData:
+            if ipToDomainsData := self.query("ip2domains", "ip", eventData):
                 self.emitIpToDomainsData(ipToDomainsData, event)
 
-            proxyDetectionData = self.query("proxydetector", "ip", eventData)
-
-            if proxyDetectionData:
+            if proxyDetectionData := self.query("proxydetector", "ip", eventData):
                 self.emitProxyDetectionData(proxyDetectionData, event)
 
-            geoIPData = self.query("geoip", "host", eventData)
-
-            if geoIPData:
+            if geoIPData := self.query("geoip", "host", eventData):
                 self.emitGeoIPData(geoIPData, event)
 
         if eventName == "USERNAME":
-            skypeResolverData = self.query("skyperesolver", "username", eventData)
-
-            if skypeResolverData:
+            if skypeResolverData := self.query(
+                "skyperesolver", "username", eventData
+            ):
                 self.emitSkypeResolverData(skypeResolverData, event)
 
 
